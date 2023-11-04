@@ -1,0 +1,342 @@
+﻿@page "/app/brand"
+@inject IBrand _brand
+@inject IJSRuntime JSRuntime
+@inject NotificationService NotificationService
+<div class="content">
+    <div class="page-header">
+        <div class="page-title">
+            <h4>Brand List</h4>
+            <h6>Manage your Brand</h6>
+        </div>
+        <div class="page-btn">
+            <a @onclick="()=>Show()" class="btn btn-added"><img src="assets/img/icons/plus.svg" class="me-2" alt="img">Add Brand</a>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-body">
+            <div class="table-top">
+                <div class="search-set">
+                    <div class="search-path">
+                        <input type="text" class="form-control search" placeholder="Search" @bind="searchText" @bind:event="oninput" @onkeyup="async ()=>await Search()">
+                    </div>
+                    <div class="search-input">
+                    </div>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-borderless table-centered align-middle table-nowrap mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col">Brand Name</th>
+                            <th scope="col">Image</th>
+                            <th scope="col">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="list form-check-all">
+                        @if (personData.Brands == null)
+                        {
+                        <tr>
+                            <td colspan="3">
+                                <div class="noresult" style="">
+                                    <div class="text-center py-4">
+                                        <i class="ph-magnifying-glass fs-1 text-primary"></i>
+                                        <h5 class="mt-2">Sorry! No Result Found</h5>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        }
+                        else
+                        {
+                            @foreach (var person in personData.Brands)
+                            {
+                                
+                                    <tr>
+                                        <td>@person.Name</td>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                            @if (person.Image == string.Empty)
+                                            {
+                                                <img src="images/no-image.jpg" alt="" class="avatar-xs rounded">
+                                            }
+                                            else
+                                            {
+                                                <img src="@person.Image" alt="" class="avatar-xs rounded">
+                                            }
+                                        </div>
+                                        </td>
+                                        <td>
+                                            <a class="me-3" @onclick="() =>Edit(person.BrandId)">
+                                                <img src="assets/img/icons/edit.svg" alt="img">
+                                            </a>
+                                            <a class="me-3" @onclick="() =>Delete(person)">
+                                                <img src="assets/img/icons/delete.svg" alt="img">
+                                            </a>
+
+                                        </td>
+                                    </tr>
+                            }
+                        }
+                    </tbody><!-- end tbody -->
+                </table><!-- end table -->
+                <br/>
+                <nav aria-label="Page navigation example">
+                    <ul class="pagination">
+                        @if (personData.PageNumber > 1)
+                        {
+                            <li class="page-item">
+                                <a @onclick="async ()=> await Filtter(personData.PageNumber-1)" class="page-link" style="cursor:pointer" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                        }
+                        @for (int i = 1; i <= personData.TotalPages; i++)
+                        {
+
+                            string activeClass = (i == personData.PageNumber) ? "active" : "";
+                            int c = i;
+                            <li class="page-item @activeClass"><a @onclick="async ()=> await Filtter(c)" style="cursor:pointer" class="page-link">@c</a></li>
+                        }
+                        @if (personData.PageNumber < personData.TotalPages)
+                        {
+                            <li class="page-item">
+                                <a @onclick="async ()=> await Filtter(personData.PageNumber+1)" class="page-link" style="cursor:pointer" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- End Page-content -->
+<!-- Modal -->
+<div class="modal fade @showModel" tabindex="-1" aria-labelledby="addAgentModalLabel" aria-hidden="true" style="display:@ModalDisplay">
+    <div class="modal-dialog" style="top:90px;">
+        <div class="modal-content">
+            <div class="modal-header bg-light p-3">
+                <h5 class="modal-title" id="addAgentModalLabel">@ShowDialogue</h5>
+                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close" @onclick="()=>Close()">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+
+           <EditForm Model="model" OnValidSubmit="Save">
+                    <DataAnnotationsValidator />
+                <div class="modal-body">
+                    <div id="alert-error-msg" class="d-none alert alert-danger py-2"></div>
+                    <input type="hidden" id="id-field">
+
+                    <div class="mb-3">
+                        <label class="form-label">Image<span class="text-danger">*</span></label>
+                        <div class="position-relative d-inline-block">
+                            
+                            <div class="avatar-lg">
+                                <div class="avatar-title bg-light rounded-3">
+                                    @if (model.Image == string.Empty)
+                                    {
+                                        <img src="images/no-image.jpg" alt="" class="avatar-xs rounded">
+                                    }
+                                    else
+                                    {
+                                        <img src="@model.Image" alt="" class="avatar-xs rounded">
+                                    }
+                                </div>
+                                <InputFile OnChange="OnFileChange" title="Upload" />
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="agent-name-input" class="form-label">Brand Name<span class="text-danger">*</span></label>
+                        <input type="text" id="agent-name-input" class="form-control" @bind="model.Name" placeholder="Enter brand name" required>
+                        <ValidationMessage For="@(() => model.Name)" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="agent-name-input" class="form-label">Under<span class="text-danger">*</span></label>
+                        <select class="form-select" @bind="model.Under">
+                            <option value="0">Choose</option>
+                            @if (listUnder != null)
+                            {
+                                @foreach (var item in listUnder)
+                                {
+                                    <option value="@item.BrandId"> @item.Name</option>
+                                }
+                            }
+                        </select>
+                        <ValidationMessage For="@(() => model.BrandId)" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="hstack gap-2 justify-content-end">
+                        <button type="button" class="btn btn-light" @onclick="()=>Close()" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary" id="add-btn">Save</button>
+                    </div>
+                </div>
+            </EditForm>
+        </div>
+        <!-- modal-content -->
+    </div>
+</div><!--end modal-->
+@code {
+    string showTarget = "";
+    public string ModalDisplay = "none;";
+    string showModel = "";
+    string ShowDialogue;
+    Brand model = new Brand();
+    IList<BrandView> listUnder;
+    private BrandPagination personData = new();
+    private string searchText = string.Empty;
+    protected override async Task OnInitializedAsync()
+    {
+        await Filtter();
+        StateHasChanged();
+    }
+    private async Task Search()
+    {
+        personData.SearchTerm = searchText;
+        await Filtter();
+        StateHasChanged();
+    }
+    private async Task Filtter(int pageNo = 1)
+    {
+        if(searchText == string.Empty)
+        {
+            personData = await _brand.GetAll("All", pageNo);
+        }
+        else
+        {
+            personData = await _brand.GetAll(searchText, pageNo);
+        }
+        StateHasChanged();
+    }
+    private async Task Show()
+    {
+        model.BrandId = 0;
+        listUnder = await _brand.BrandAll();
+        model.Under = 0;
+        model.TenantId = "1";
+        ModalDisplay = "block;";
+        showTarget = "addAgent";
+        showModel = "Show";
+        ShowDialogue = "Brand / Add";
+        model.Name = string.Empty;
+        model.Image = string.Empty;
+        StateHasChanged();
+    }
+    private async Task Edit(int id)
+    {
+        if (id != 0)
+        {
+            model.BrandId = 0;
+            ModalDisplay = "block;";
+            showModel = "Show";
+            ShowDialogue = "Brand / Edit";
+            model = await _brand.GetbyId(Convert.ToInt32(id));
+            listUnder = await _brand.BrandAll();
+            StateHasChanged();
+        }
+        else
+        {
+            ShowNotification(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = "", Detail = "Default value cannot be edit", Duration = 3000 });
+        }
+    }
+    private async Task Save()
+    {
+        if (model.BrandId == 0)
+        {
+            model.AddedDate = DateTime.UtcNow;
+            var result = await _brand.Save(model);
+            var response = await result.Content.ReadFromJsonAsync<Response>();
+            if (response.StatusCode == 1)
+            {
+                ModalDisplay = "none";
+                showModel = "";
+                ShowNotification(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = "", Detail = response.Message, Duration = 3000 });
+                await Filtter();
+                StateHasChanged();
+            }
+            else
+            {
+                ShowNotification(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = "", Detail = response.Message, Duration = 3000 });
+                StateHasChanged();
+            }
+        }
+        else
+        {
+            model.ModifyDate = DateTime.UtcNow;
+            var result = await _brand.Update(model);
+
+            var response = await result.Content.ReadFromJsonAsync<Response>();
+            if (response.StatusCode == 1)
+            {
+                ModalDisplay = "none";
+                showModel = "";
+                ShowNotification(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = "", Detail = response.Message, Duration = 3000 });
+                await Filtter();
+                StateHasChanged();
+            }
+            else
+            {
+             ShowNotification(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = "", Detail = response.Message, Duration = 3000 });
+                StateHasChanged();
+            }
+        }
+    }
+    private async Task Close()
+    {
+        ModalDisplay = "none";
+        showModel = "";
+        StateHasChanged();
+    }
+    private async Task Delete(BrandView model)
+    {
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure?");
+        if (confirmed)
+        {
+            if(model.BrandId !=0)
+            {
+                Brand delete = new Brand();
+                delete = await _brand.GetbyId(model.BrandId);
+            var result = await _brand.Delete(delete);
+            var response = await result.Content.ReadFromJsonAsync<Response>();
+            if(response.StatusCode == 1)
+            {
+            await Filtter();
+            ShowNotification(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = "", Detail = response.Message, Duration = 3000 });
+            }
+            else
+            {
+                ShowNotification(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = "", Detail = response.Message, Duration = 3000 });
+            }
+            }
+            else
+            {
+                ShowNotification(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = "", Detail = "Default value cannot be delete", Duration = 3000 });
+            }
+            }
+    }
+    void ShowNotification(NotificationMessage message)
+    {
+        NotificationService.Notify(message);
+    }
+    async Task OnFileChange(InputFileChangeEventArgs e)
+    {
+        var format = "image/png";
+        var resizedImage = await e.File.RequestImageFileAsync(format, 300, 300);
+        var buffer = new byte[resizedImage.Size];
+        await resizedImage.OpenReadStream().ReadAsync(buffer);
+        var imageData = $"data:{format};base64,{Convert.ToBase64String(buffer)}";
+        if (imageData == null)
+        {
+            model.Image = string.Empty;
+        }
+        else
+        {
+            model.Image = imageData;
+        }
+    }
+}

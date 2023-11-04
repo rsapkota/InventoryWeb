@@ -1,0 +1,33 @@
+﻿@inherits LayoutComponentBase
+@inject IJSRuntime _jsCustom
+<PageTitle>Inventory Web</PageTitle>
+<RadzenDialog />
+<RadzenNotification />
+<RadzenContextMenu />
+<RadzenTooltip />
+<AuthorizeView>
+    <Authorized>
+        <div class="main-wrapper">
+        <NavMenu />
+        <HeaderLayout />
+            <div class="page-wrapper">
+                @Body
+            </div>
+        </div>
+</Authorized>
+    <NotAuthorized>
+        <InventoryWeb.Pages.Authentaction.Login />
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    protected async override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            //await _jsCustom.InvokeAsync<IJSObjectReference>("import", "/assets/js/bootstrap.bundle.min.js");
+            await _jsCustom.InvokeAsync<IJSObjectReference>("import", "/assets/js/script.js");
+            StateHasChanged();
+        }
+    }
+}

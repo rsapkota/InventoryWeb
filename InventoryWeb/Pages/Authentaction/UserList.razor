@@ -1,0 +1,170 @@
+﻿@page "/app/user"
+@inject IUser _user
+@inject IJSRuntime JSRuntime
+@inject NotificationService NotificationService
+<div class="content">
+    <div class="page-header">
+        <div class="page-title">
+            <h4>User List</h4>
+            <h6>Manage your User</h6>
+        </div>
+        <div class="page-btn">
+            <a href="/app/user/add" class="btn btn-added"><img src="assets/img/icons/plus.svg" class="me-2" alt="img">Add</a>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-body">
+            <div class="table-top">
+                <div class="search-set">
+                    <div class="search-path">
+                        <input type="text" class="form-control search" placeholder="Search" @bind="searchText" @bind:event="oninput" @onkeyup="async ()=>await Search()">
+                    </div>
+                    <div class="search-input">
+                    </div>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-borderless table-centered align-middle table-nowrap mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col">Full Name</th>
+                            <th scope="col">Email</th>
+                            <th scope="col">Role</th>
+                            <th scope="col">Gender</th>
+                            <th scope="col">Address</th>
+                            <th scope="col">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="list form-check-all">
+                        @if (userData.user == null)
+                        {
+                        <tr>
+                            <td colspan="6">
+                                <div class="noresult" style="">
+                                    <div class="text-center py-4">
+                                        <i class="ph-magnifying-glass fs-1 text-primary"></i>
+                                        <h5 class="mt-2">Sorry! No Result Found</h5>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        }
+                        else
+                        {
+                            @foreach (var item in userData.user)
+                            {
+                                    <tr>
+                                    <td>@item.FullName</td>
+                                        <td>
+                                            @item.Email
+                                        </td>
+                                        <td>
+                                            @item.Role
+                                        </td>
+                                    <td>
+                                        @item.Gender
+                                    </td>
+                                    <td>
+                                        @item.Address
+                                    </td>
+                                        <td>
+                                        <a class="me-3" href="/app/user/edit/@item.UserId">
+                                                <img src="assets/img/icons/edit.svg" alt="img">
+                                            </a>
+                                        <a class="me-3" @onclick="() =>Delete(item)">
+                                                <img src="assets/img/icons/delete.svg" alt="img">
+                                            </a>
+
+                                        </td>
+                                    </tr>
+                            }
+                        }
+                    </tbody><!-- end tbody -->
+                </table><!-- end table -->
+                <br/>
+                <nav aria-label="Page navigation example">
+                    <ul class="pagination">
+                        @if (userData.PageNumber > 1)
+                        {
+                            <li class="page-item">
+                                <a @onclick="async ()=> await Filtter(userData.PageNumber-1)" class="page-link" style="cursor:pointer" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                        }
+                        @for (int i = 1; i <= userData.TotalPages; i++)
+                        {
+
+                            string activeClass = (i == userData.PageNumber) ? "active" : "";
+                            int c = i;
+                            <li class="page-item @activeClass"><a @onclick="async ()=> await Filtter(c)" style="cursor:pointer" class="page-link">@c</a></li>
+                        }
+                        @if (userData.PageNumber < userData.TotalPages)
+                        {
+                            <li class="page-item">
+                                <a @onclick="async ()=> await Filtter(userData.PageNumber+1)" class="page-link" style="cursor:pointer" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+@code {
+    private PaginationModel userData = new();
+    private string searchText = string.Empty;
+    protected override async Task OnInitializedAsync()
+    {
+        await Filtter();
+    }
+    private async Task Search()
+    {
+        userData.SearchTerm = searchText;
+        await Filtter();
+        StateHasChanged();
+    }
+    private async Task Filtter(int pageNo = 1)
+    {
+        if(searchText == string.Empty)
+        {
+            userData = await _user.GetAll("All", pageNo);
+        }
+        else
+        {
+            userData = await _user.GetAll(searchText, pageNo);
+        }
+        StateHasChanged();
+    }
+    private async Task Delete(Users model)
+    {
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure?");
+        if (confirmed)
+        {
+            if (model.UserId != 1)
+            {
+                var result = await _user.Delete(model);
+                var response = await result.Content.ReadFromJsonAsync<Response>();
+                if (response.StatusCode == 1)
+                {
+                    await Filtter();
+                    ShowNotification(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = "", Detail = response.Message, Duration = 3000 });
+                }
+                else
+                {
+                    ShowNotification(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = "", Detail = response.Message, Duration = 3000 });
+                }
+            }
+            else
+            {
+                ShowNotification(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = "", Detail = "Admin cannot be delete", Duration = 3000 });
+            }
+        }
+    }
+    void ShowNotification(NotificationMessage message)
+    {
+        NotificationService.Notify(message);
+    }
+}

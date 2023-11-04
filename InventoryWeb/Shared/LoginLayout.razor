@@ -1,0 +1,20 @@
+﻿@inherits LayoutComponentBase
+@inject IJSRuntime _jsCustom
+<RadzenDialog />
+<RadzenNotification />
+<RadzenContextMenu />
+<RadzenTooltip />
+<PageTitle>Login</PageTitle>
+<div class="main-wrapper">
+	@Body
+</div>
+@code {
+    protected async override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await _jsCustom.InvokeAsync<IJSObjectReference>("import", "/assets/js/script.js");
+            StateHasChanged();
+        }
+    }
+}
